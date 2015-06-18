@@ -64,7 +64,7 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 THE SOFTWARE.
 #end
 
-Import mojo
+'Import mojo2
  
 Public 
 
@@ -75,6 +75,31 @@ Public
 Class IndexedTriangles
 	Field points:Float[]
 	Field indexes:Int[]
+	
+	' for use with Mojo 2 DrawPrimitives
+	Method AsPrimitives:Float[]()
+	
+		Local primitivetris:Float[indexes.Length()*2]
+	
+		Local i:Int = 0
+	
+		For Local n:Int = 0 Until indexes.Length() Step 3
+			primitivetris[i] = points[indexes[n]]
+			primitivetris[i+1] = points[indexes[n]+1]
+	
+			primitivetris[i+2] = points[indexes[n+1]]
+			primitivetris[i+3] = points[indexes[n+1]+1]			
+	
+			primitivetris[i+4] = points[indexes[n+2]]
+			primitivetris[i+5] = points[indexes[n+2]+1]		
+			i +=6
+			
+		Next
+	
+		Return primitivetris
+	
+	End Method
+	
 	
 	Method Clone:IndexedTriangles()
 	
