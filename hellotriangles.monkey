@@ -9,83 +9,103 @@ Class MyApp Extends App
 
 	Field canvas:Canvas
 	
-	Field vectordrawing:DrawList
+	Field vectordrawing:IndexedTriangles
 	
+	Field morpher:IndexedTriangles
+	
+	Field mfactor:Float
  
 	Method OnCreate:Int()
 		canvas=New Canvas
 		vectordrawing = MakeVectorDrawing()
+		morpher = vectordrawing.Clone()
+		
+		
 		Return 0
 	End
+	
+	Method OnUpdate:Int()
+	
+		If TouchHit(0)
+			For Local n:Int = 0 Until vectordrawing.points.Length 
+		 		morpher.points[n] =  vectordrawing.points[n]  + Rnd( -100,100)
+		 	Next
+		 	mfactor = 1
+		Endif
+	
+		Return 0
+	End Method
+	
 	
 	Method OnRender:Int()
 	
 		canvas.Clear 0,0,1
 		 	
 		canvas.SetBlendMode 1
-		canvas.SetColor 1,1,0,1
-		canvas.DrawText "Hello Vector World",DeviceWidth()/2,DeviceHeight()/2,.5,.5
-		
-		
-	 
-	'  itris.Offset(DeviceWidth()/2,DeviceHeight()/2)
-	 
-	 
 	 	 
-		
-		canvas.RenderDrawList(vectordrawing)
-		
+	 	For Local n:Int = 0 Until vectordrawing.points.Length '-1'-1Step 2
+	 		morpher.points[n] =morpher.points[n]*mfactor +  vectordrawing.points[n]*(1.0-mfactor)  
+	 	Next
 	 
+	 	canvas.SetColor 1,1,0,1
+	 	canvas.DrawPrimitives(3,morpher.UnPack())
 		
-		 canvas.Rotate 0.1
+		canvas.SetColor 1,0,0,1
+		canvas.DrawText "Triangles: " + vectordrawing.indexes.Length/3,DeviceWidth()/2,DeviceHeight()/2,.5,.5
+		
+
 		canvas.Flush
+		
+		mfactor *=0.999
 		
 		Return 0
 	End
 End
 
 
-Function MakeVectorDrawing:DrawList()
-	Local edge:Float[36*2]
+Function MakeVectorDrawing:IndexedTriangles()
+	Local edge:Float[360*2]
 		
 		
 		
 		
 		Local radius:Float = 110
 		
-		For Local n:Int= 0 Until 36*2 Step 2
-	 		edge[n] = Cos(-Float(n)*5.0)*radius  
-	 		edge[n+1] = Sin(-Float(n)*5.0)*radius  *2
+		For Local n:Int= 0 Until 360*2 Step 2
+	 		edge[n] = Cos(Float(n)*0.50)*radius  
+	 		edge[n+1] = Sin(Float(n)*0.5)*radius  *2
 		Next
 		
-		Local hole:Float[36*2]
+		Local hole:Float[360*2]
 		
 		radius = 50
-		For Local n:Int= 0 Until 36*2 Step 2
-	 		hole[n] = Cos(Float(n)*5.0)*radius    
-	 		hole[n+1] = Sin(Float(n)*5.0)*radius   - radius *2.0
+		For Local n:Int= 0 Until 360*2 Step 2
+	 		hole[n] = Cos(-Float(n)*0.5)*radius    
+	 		hole[n+1] = Sin(-Float(n)*0.5)*radius   - radius *2.0
 		Next	
 		
-		Local hole2:Float[36*2]
+		Local hole2:Float[360*2]
 		
-		For Local n:Int= 0 Until 36*2 Step 2
-	 		hole2[n] = Cos(Float(n)*5.0)*radius    
-	 		hole2[n+1] = Sin(Float(n)*5.0)*radius   + radius*2.0
+		For Local n:Int= 0 Until 360*2 Step 2
+	 		hole2[n] = Cos(-Float(n)*0.5)*radius    
+	 		hole2[n+1] = Sin(-Float(n)*0.5)*radius   + radius*2.0
 		Next			
 		
 		
-		Local itris:IndexedTriangles  = MakeTriangles([edge,hole,hole2])
+		Local itris:IndexedTriangles  = MakeIndexedTriangles([edge,hole,hole2])
 		
 		itris.Offset(DeviceWidth()/2,DeviceHeight()/2)
 		
-		Local vectordrawing:DrawList = New DrawList
+		Return itris
 		
-		vectordrawing.SetColor 1,1,0,1
-	 	vectordrawing.DrawPrimitives (3,itris.AsPrimitives())
+	'	Local vectordrawing:DrawList = New DrawList
+		
+	'	vectordrawing.SetColor 1,1,0,1
+	' 	vectordrawing.DrawPrimitives (3,itris.Unpack())
 	 	
 	 	 
 		
-		Return vectordrawing
+		 
 End Function
 
 

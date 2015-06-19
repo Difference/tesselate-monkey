@@ -6,6 +6,9 @@ Strict
 ' Draw lines and  polylines with linewidth and miter/bevel joints
 ' () 2014.02.24 - Peter Scheutz aka Difference
 
+' v10 - 2015.06.19 
+' Renamed MakeTriangles to MakeIndexedTriangles, made MakeTriangles return Unpacked triangles
+
 ' v09 - 2014.03.29 
 ' Added Class IndexedTriangles, removed Tesselator Class
 ' Made most of the module private, leaving only the Make Triangles functions and IndexedTriangles Class public.
@@ -77,26 +80,26 @@ Class IndexedTriangles
 	Field indexes:Int[]
 	
 	' for use with Mojo 2 DrawPrimitives
-	Method AsPrimitives:Float[]()
+	Method UnPack:Float[]()
 	
-		Local primitivetris:Float[indexes.Length()*2]
+		Local triangles:Float[indexes.Length()*2]
 	
 		Local i:Int = 0
 	
 		For Local n:Int = 0 Until indexes.Length() Step 3
-			primitivetris[i] = points[indexes[n]]
-			primitivetris[i+1] = points[indexes[n]+1]
+			triangles[i] = points[indexes[n]]
+			triangles[i+1] = points[indexes[n]+1]
 	
-			primitivetris[i+2] = points[indexes[n+1]]
-			primitivetris[i+3] = points[indexes[n+1]+1]			
+			triangles[i+2] = points[indexes[n+1]]
+			triangles[i+3] = points[indexes[n+1]+1]			
 	
-			primitivetris[i+4] = points[indexes[n+2]]
-			primitivetris[i+5] = points[indexes[n+2]+1]		
+			triangles[i+4] = points[indexes[n+2]]
+			triangles[i+5] = points[indexes[n+2]+1]		
 			i +=6
 			
 		Next
 	
-		Return primitivetris
+		Return triangles
 	
 	End Method
 	
@@ -141,11 +144,17 @@ Class IndexedTriangles
 
 End Class
 
+
+Function MakeTriangles:Float[](polys:Float[][])
+	Local indexedTris:IndexedTriangles = MakeIndexedTriangles(polys)
+	Return indexedTris.UnPack()
+End Function
+
 ' Expects an array of an array of floats.
 ' each array is a polygon, the outermost first.
 ' if Count> 1 then the following polys are expected to be holes
 ' The holes are expectid to be winded opposite the first.
-Function MakeTriangles:IndexedTriangles(polys:Float[][])
+Function MakeIndexedTriangles:IndexedTriangles(polys:Float[][])
 
 'Print "MakeTriangles"
 
