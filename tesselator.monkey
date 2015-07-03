@@ -78,8 +78,18 @@ Public
 Class IndexedTriangles
 	Field points:Float[]
 	Field indexes:Int[]
+	Field texcoords:Float[]
+	
+	'Private
+	Method FixIndexes:Void()
+		For Local n:Int = 0 Until indexes.Length()  
+ 			indexes[n] = indexes[n]/2
+		Next
+	End Method
 	
 	' for use with Mojo 2 DrawPrimitives
+	
+	'Public
 	Method UnPack:Float[]()
 	
 		Local triangles:Float[indexes.Length()*2]
@@ -102,6 +112,8 @@ Class IndexedTriangles
 		Return triangles
 	
 	End Method
+	
+	
 	
 	
 	Method Clone:IndexedTriangles()
@@ -130,6 +142,35 @@ Class IndexedTriangles
 			points[i] *= s			
 		Next
 	End Method
+	
+	
+	Method MakeTextureCords:Void()
+	
+		Local minx:Float = 1000000.0
+		Local maxx:Float =  -1000000.0
+		Local miny:Float =  1000000.0
+		Local maxy:Float =  -1000000.0
+	
+	
+		For Local i:Int = 0 Until points.Length() Step 2
+			If points[i] < minx Then minx = points[i]
+			If points[i+1] < miny Then miny = points[i+1]
+			If points[i] > maxx Then maxx = points[i]
+			If points[i+1] > maxy Then maxy = points[i+1]
+		Next
+		
+		Local magx:Float = (maxx-minx)
+		Local magy:Float = (maxy-miny)
+		
+		texcoords = New Float[points.Length]
+		
+		For Local i:Int = 0 Until points.Length() Step 2
+			texcoords[i] = (points[i] - minx) / magx
+			texcoords[i+1] = (points[i+1] - miny) / magy
+		Next
+		 
+		
+	End Method
 
 	Method Offset:Void(x:Float,y:Float)
 		For Local i:Int = 0 Until points.Length() Step 2
@@ -156,9 +197,10 @@ End Function
 ' The holes are expectid to be winded opposite the first.
 Function MakeIndexedTriangles:IndexedTriangles(polys:Float[][])
 
-'Print "MakeTriangles"
-
  	Local compoundpoly:= New CompoundPolygon(polys)
+ 	
+ 	compoundpoly.itri.FixIndexes()
+ 	
  	Return compoundpoly.itri 		
 End Function	
 
