@@ -144,7 +144,9 @@ Class IndexedTriangles
 	End Method
 	
 	
-	Method MakeTextureCords:Void()
+	Method MakeTextureCords:Void(offx:Float=0,offy:Float=0,scalex:Float=0,scaley:Float=0)
+	
+	
 	
 		Local minx:Float = 1000000.0
 		Local maxx:Float =  -1000000.0
@@ -165,8 +167,12 @@ Class IndexedTriangles
 		texcoords = New Float[points.Length]
 		
 		For Local i:Int = 0 Until points.Length() Step 2
-			texcoords[i] = (points[i] - minx) / magx
-			texcoords[i+1] = (points[i+1] - miny) / magy
+		
+			Local u:Float =   scalex*(points[i] - minx) / magx  + offx
+			Local v:Float =  scaley*(points[i+1] - miny) / magy  + offy
+		
+			texcoords[i] = u 
+			texcoords[i+1] = v
 		Next
 		 
 		
