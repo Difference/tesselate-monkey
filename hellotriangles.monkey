@@ -48,10 +48,13 @@ Class MyApp Extends App
 	 	Next
 	 
 	 	canvas.SetColor 1,1,0,1
-	 	canvas.DrawPrimitives(3,morpher.UnPack())
+	 	
+ 
+	 	canvas.DrawIndexedPrimitives(3,morpher.TriangleCount,morpher.Points(),morpher.Indexes)
 		
 		canvas.SetColor 1,0,0,1
-		canvas.DrawText "Triangles: " + vectordrawing.indexes.Length/3,DeviceWidth()/2,DeviceHeight()/2,.5,.5
+		canvas.DrawText "Click screen",DeviceWidth()/2,DeviceHeight()/2-30,.5,.5
+		canvas.DrawText "Triangles: " + vectordrawing.TriangleCount,DeviceWidth()/2,DeviceHeight()/2,.5,.5
 		
 
 		canvas.Flush

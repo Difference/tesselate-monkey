@@ -1,11 +1,14 @@
 Strict
  
-
+ 
+ 
 ' tesselate.monkey
 ' Poly earclipper that deals with holes
 ' Draw lines and  polylines with linewidth and miter/bevel joints
 ' () 2014.02.24 - Peter Scheutz aka Difference
 
+' v11 - 2016.09
+' updated for moneky v87a
 ' v10 - 2015.06.19 
 ' Renamed MakeTriangles to MakeIndexedTriangles, made MakeTriangles return Unpacked triangles
 
@@ -77,34 +80,67 @@ Public
 ' 
 Class IndexedTriangles
 	Field points:Float[]
-	Field indexes:Int[]
+	Field voffsets:Int[]
+	Field vindexes:Int[]
 	Field texcoords:Float[]
 	
-	'Private
-	Method FixIndexes:Void()
-		For Local n:Int = 0 Until indexes.Length()  
- 			indexes[n] = indexes[n]/2
+	Field pointsindex:Int  
+	Field voffsetsindex:Int  
+	
+	Method New(pointssize:Int,voffsetssize:int)
+		'Print "New IndexedTriangles " + pointssize + " " + voffsetssize
+	
+		'pointsindex = pointssize
+		'voffsetsindex = voffsetssize
+		points = New Float[pointssize]
+		voffsets = New int[voffsetssize]
+
+	End Method
+	
+	
+	Method TriangleCount:Int() Property
+		If Not voffsets Then Return 0
+		Return voffsets.Length/3
+	End
+	
+	Method Indexes:Int[]() Property
+    'If vindexes.Length = 0 Then 
+    MakeIndexes()
+    Return vindexes
+	End
+	
+	Method Points:Float[]()
+    Return points
+	End	
+	
+	
+	Method MakeIndexes:Void()
+	
+		vindexes = New Int[voffsets.Length]
+		
+		For Local n:Int = 0 Until voffsets.Length
+			vindexes[n] = voffsets[n]/2
+			vindexes[n] = voffsets[n]/2
 		Next
 	End Method
 	
-	' for use with Mojo 2 DrawPrimitives
 	
-	'Public
+	' for use with Mojo 2 DrawPrimitives
 	Method UnPack:Float[]()
 	
-		Local triangles:Float[indexes.Length()*2]
+		Local triangles:Float[voffsets.Length()*2]
 	
 		Local i:Int = 0
 	
-		For Local n:Int = 0 Until indexes.Length() Step 3
-			triangles[i] = points[indexes[n]]
-			triangles[i+1] = points[indexes[n]+1]
+		For Local n:Int = 0 Until voffsets.Length() Step 3
+			triangles[i] = points[voffsets[n]]
+			triangles[i+1] = points[voffsets[n]+1]
 	
-			triangles[i+2] = points[indexes[n+1]]
-			triangles[i+3] = points[indexes[n+1]+1]			
+			triangles[i+2] = points[voffsets[n+1]]
+			triangles[i+3] = points[voffsets[n+1]+1]			
 	
-			triangles[i+4] = points[indexes[n+2]]
-			triangles[i+5] = points[indexes[n+2]+1]		
+			triangles[i+4] = points[voffsets[n+2]]
+			triangles[i+5] = points[voffsets[n+2]+1]		
 			i +=6
 			
 		Next
@@ -113,38 +149,7 @@ Class IndexedTriangles
 	
 	End Method
 	
-	
-	
-	
-	Method Clone:IndexedTriangles()
-	
-		Local it:= New IndexedTriangles
-		
-		it.points = New Float[points.Length()]
-		it.indexes = New Int[indexes.Length()]
-
-	
-		For Local i:Int = 0 Until points.Length() 
-			it.points[i]  =  points[i] 
-		Next
-	
-		For Local i:Int = 0 Until indexes.Length() 
-			it.indexes[i]  =  indexes[i] 
-		Next	
-		
-		Return it
-		
-	End Method	
-	
- 	
-	Method Scale:Void(s:Float)
-		For Local i:Int = 0 Until points.Length() 
-			points[i] *= s			
-		Next
-	End Method
-	
-	
-	Method MakeTextureCords:Void(offx:Float=0,offy:Float=0,scalex:Float=0,scaley:Float=0)
+		Method MakeTextureCords:Void(offx:Float=0,offy:Float=0,scalex:Float=0,scaley:Float=0)
 	
 	
 	
@@ -177,6 +182,88 @@ Class IndexedTriangles
 		 
 		
 	End Method
+	
+	Method TrimToContent:Void()
+	
+		'Print "Triming Points: " + (pointsindex-points.Length())
+		'Print "Triming voffsets: " + (voffsetsindex-voffsets.Length())
+	
+	
+	
+		points = points[..pointsindex]
+		voffsets = voffsets[..voffsetsindex]
+	
+	End Method
+	
+	
+	Method Merge:Void(extra:IndexedTriangles)
+	
+		Local newpointsarraysize:Int =  pointsindex + extra.points.Length()
+		If points.Length()<	newpointsarraysize
+			points = points.Resize(newpointsarraysize )
+			Print "Resize Points " + newpointsarraysize
+		Endif
+		
+		Local newvoffsetsarraysize:Int =  voffsetsindex + extra.voffsets.Length()
+		If voffsets.Length()<	newvoffsetsarraysize
+			Print "Resize Indexes " + newvoffsetsarraysize +" " + voffsets.Length()
+			voffsets = voffsets.Resize(newvoffsetsarraysize )
+		
+		Endif
+		
+		For Local i:Int = 0 Until extra.points.Length() 
+			points[i+pointsindex]  =  extra.points[i] 
+		Next
+	
+		For Local i:Int = 0 Until extra.voffsets.Length() 
+			extra.voffsets[i] += pointsindex
+			voffsets[i+voffsetsindex]  =  extra.voffsets[i] 
+		Next			
+	
+	
+		pointsindex += extra.points.Length() 
+		voffsetsindex += extra.voffsets.Length()	
+	
+	
+	
+	End Method
+	
+	
+	
+	Method Clone:IndexedTriangles()
+	
+		Local it:= New IndexedTriangles
+		
+		it.points = New Float[points.Length()]
+		it.voffsets = New Int[voffsets.Length()]
+
+	
+		For Local i:Int = 0 Until points.Length() 
+			it.points[i]  =  points[i] 
+		Next
+	
+		For Local i:Int = 0 Until voffsets.Length() 
+			it.voffsets[i]  =  voffsets[i] 
+		Next	
+		
+		Return it
+		
+	End Method	
+	
+ 	
+	Method Scale:Void(s:Float)
+		For Local i:Int = 0 Until points.Length() 
+			points[i] *= s			
+		Next
+	End Method
+
+	Method Scale:Void(sx:Float,sy:Float)
+		For Local i:Int = 0 Until points.Length() Step 2
+			points[i] *= sx	
+			points[i+1] *= sy		
+		Next
+	End Method
+
 
 	Method Offset:Void(x:Float,y:Float)
 		For Local i:Int = 0 Until points.Length() Step 2
@@ -185,8 +272,8 @@ Class IndexedTriangles
 		Next
 	End Method
 
-	Method Draw:Void()		
-		DrawTriangles(points,indexes)
+	Method Draw:Void(canvas:Canvas)		
+		DrawProxy.DrawTriangles(canvas,points,voffsets)
 	End Method	
 
 End Class
@@ -201,13 +288,86 @@ End Function
 ' each array is a polygon, the outermost first.
 ' if Count> 1 then the following polys are expected to be holes
 ' The holes are expectid to be winded opposite the first.
-Function MakeIndexedTriangles:IndexedTriangles(polys:Float[][])
+Function MakeIndexedTriangles:IndexedTriangles(polys:Float[][],polysareislands:Bool=False)
 
- 	Local compoundpoly:= New CompoundPolygon(polys)
- 	
- 	compoundpoly.itri.FixIndexes()
- 	
- 	Return compoundpoly.itri 		
+	'polysareislands = True
+	
+	' allocate arrays, because resizing is slow 
+	Local maxpointsize:Int
+	Local maxvoffsets:Int
+	
+	For Local poly:= Eachin polys
+		maxpointsize += poly.Length()
+	Next
+	
+	maxvoffsets = ((maxpointsize/2) )*3
+
+	Local alltris:= New IndexedTriangles(maxpointsize,maxvoffsets)
+	Local singlepoly:= New Float[1][] 
+
+	'Return alltris 	
+
+	If polysareislands
+	
+		For Local poly:= Eachin polys
+		singlepoly[0] = poly
+			Local compoundpoly:= New CompoundPolygon(singlepoly)
+			
+			alltris.Merge(compoundpoly.itri )
+		Next
+	
+	Else
+	
+	
+
+		Local main:= New List<Float[]>
+		Local islands:= New List<Float[]>
+		
+
+		
+		Repeat 
+			main.Clear()
+			islands.Clear()
+			
+			Local f:= polys[0]
+			main.AddLast f
+			
+			For Local i:Int = 1 Until polys.Length
+				If Not PolyIsInsidePoly(f,polys[i])
+				'	Print "Island found"
+					islands.AddLast polys[i]
+				Else
+					main.AddLast polys[i]
+				Endif
+			next
+
+			Local readypolys:= New Float[main.Count()][] 
+
+			Local i:int
+			For Local mp:= Eachin main
+				readypolys[i] = mp
+				i+=1
+			Next
+
+			Local compoundpoly:= New CompoundPolygon(readypolys)
+			
+			alltris.Merge(compoundpoly.itri )
+			' tersselate done, now do other islands
+			
+			polys = New Float[islands.Count()][] 
+			i = 0
+			For Local mp:= Eachin islands
+				polys[i] = mp
+				i+=1
+			Next
+			
+			
+		Until islands.Count()=0
+		
+		Endif
+		
+		alltris.TrimToContent()
+ 	Return alltris 		
 End Function	
 
 
@@ -305,7 +465,7 @@ End Function
   
 'Polygon with holes 
 Class CompoundPolygon 
- 	Field polyindexes:= New Deque<IndexedPolygon> 	
+ 	Field polyvoffsets:= New Deque<IndexedPolygon> 	
  	Field itri:= New IndexedTriangles  
    
  
@@ -326,7 +486,7 @@ Class CompoundPolygon
 		
 			Local ipoly:= New IndexedPolygon(itri.points)  
 		 
-			polyindexes.PushLast ipoly
+			polyvoffsets.PushLast ipoly
 			
 			For Local n:Int = 0 Until newpoints[i].Length()-1 Step 2			
 				ipoly.Push(index)
@@ -339,11 +499,11 @@ Class CompoundPolygon
 		' merge holes and polygon
 		' OBS for now assume all polys with index> 0 are holes 
 		' start by adding first poly, then merge holes	
-		mergedpoly  = polyindexes.PopFirst()
+		mergedpoly  = polyvoffsets.PopFirst()
 		
-		While polyindexes.Length()
-			Local hole:= polyindexes.PopFirst()
-			mergedpoly = HoleMerge(itri.points,mergedpoly,hole,polyindexes)
+		While polyvoffsets.Length()
+			Local hole:= polyvoffsets.PopFirst()
+			mergedpoly = HoleMerge(itri.points,mergedpoly,hole,polyvoffsets)
 		wend
 			
 		If mergedpoly.Length()<2 Then Return
@@ -366,30 +526,30 @@ Class CompoundPolygon
 		
 		If trianglecount<=0 Then Return 
  	
-		' an arrry for triangleindexes to be passed to DrawTriangles()
-		itri.indexes = New Int[trianglecount*3]	
+		' an arrry for trianglevoffsets to be passed to DrawTriangles()
+		itri.voffsets = New Int[trianglecount*3]	
  
 		Local i:int
  
 		While indexedpoly.ClipEar()
- 			itri.indexes[i] = indexedpoly.ear[0]
-			itri.indexes[i+1] = indexedpoly.ear[1]
-			itri.indexes[i+2] = indexedpoly.ear[2]	
+ 			itri.voffsets[i] = indexedpoly.ear[0]
+			itri.voffsets[i+1] = indexedpoly.ear[1]
+			itri.voffsets[i+2] = indexedpoly.ear[2]	
 			i +=3
 		Wend
 	
 		If indexedpoly.bridges   
 			While indexedpoly.bridges.Length() 
-				itri.indexes[i+2] = indexedpoly.bridges.Pop()
-				itri.indexes[i+1] = indexedpoly.bridges.Pop()		
-				itri.indexes[i] = indexedpoly.bridges.Pop()	
+				itri.voffsets[i+2] = indexedpoly.bridges.Pop()
+				itri.voffsets[i+1] = indexedpoly.bridges.Pop()		
+				itri.voffsets[i] = indexedpoly.bridges.Pop()	
 				i +=3	
 			Wend
 		endif	
 		
 		' did we loose some in the fire?
-		If i < itri.indexes.Length()
-			itri.indexes = itri.indexes[..i]					
+		If i < itri.voffsets.Length()
+			itri.voffsets = itri.voffsets[..i]					
 			'trianglecount = i/3
 		Endif
  
@@ -428,7 +588,7 @@ Class IndexedPolygon Extends IntStack
  
 		
 	' Return True if ear was clipped
-	' clipped ear indexes is in ear array	
+	' clipped ear voffsets is in ear array	
 	Method ClipEar:Bool()
 		If Self.Length() <3 Then Return False
  	
@@ -463,12 +623,12 @@ End Class
 
 
 
-Function PointInPolygon:Int(points:Float[],indexes:Int[],x:Float,y:Float) 
+Function PointInPolygon:Int(points:Float[],voffsets:Int[],x:Float,y:Float) 
 
-	Local  j:Int = indexes[indexes.Length()-1]
+	Local  j:Int = voffsets[voffsets.Length()-1]
   	Local oddNodes:Int 
 
-	For Local i:= Eachin indexes
+	For Local i:= Eachin voffsets
 		If (points[i+1]< y And points[j+1]>=y ) Or (points[j+1]< y And points[i+1]>=y) 
 			If  (points[i]<=x Or points[j]<=x) 
 				If (points[i]+(y-points[i+1])/(points[j+1]-points[i+1])*(points[j]-points[i])<x) 
@@ -533,7 +693,7 @@ End Function
 
 
 
-'Function params: pointpool , intarray/stack with indexes and the 3 triangle indexes to ignore
+'Function params: pointpool , intarray/stack with voffsets and the 3 triangle voffsets to ignore
 Function NoPointsInTriangle:Bool(points:Float[],poly:IntStack,tri:Int[])
 
 	For Local i:= Eachin poly
@@ -914,7 +1074,7 @@ End Function
  
 Class ThickPolyline   
 
-	Field polyindexes:= New Deque<IndexedPolygon> 	
+	Field polyvoffsets:= New Deque<IndexedPolygon> 	
  	Field itri:= New IndexedTriangles  
  
 	' jointype: miter = 0 , round = 1, bevel = 2	  	 
@@ -1021,7 +1181,7 @@ Class ThickPolyline
 				endif
 				
 	 			
-	 			' base for indexes to the points
+	 			' base for voffsets to the points
 	 			' using two pointstacks makes for easier visual debugging
 	 			' but results in this slightly convoluted offset trick
 	 			' negative indeses are for the right line
@@ -1286,12 +1446,12 @@ Class ThickPolyline
  
 		itri.points = lps.ToArray()
 		
- 		itri.indexes = tris.ToArray()	
+ 		itri.voffsets = tris.ToArray()	
  		
-		For Local i:Int = 0 Until itri.indexes.Length()
- 			If itri.indexes[i] < -900000 Then
-				itri.indexes[i] += 1000000  ' correct the negative indexes
-				itri.indexes[i] = offset - itri.indexes[i]   ' add offset and correct negative index
+		For Local i:Int = 0 Until itri.voffsets.Length()
+ 			If itri.voffsets[i] < -900000 Then
+				itri.voffsets[i] += 1000000  ' correct the negative voffsets
+				itri.voffsets[i] = offset - itri.voffsets[i]   ' add offset and correct negative index
 			Endif
 	 	Next	
 	 	
@@ -1302,6 +1462,39 @@ Class ThickPolyline
  
 
 End Class
+Function PolyIsInsidePoly:Bool(outer:Float[],inner:Float[])
+	
+	For Local i:Int =0 Until inner.Length() Step 2
+		If Not IsInsidePoly(outer,inner[i],inner[i+1]) Return False
+	Next
+	
+	Return True
 
+End Function
+
+
+Function IsInsidePoly:Int(polypoints:Float[],x:Float,y:Float) 
+
+	Local  j:Int = polypoints.Length()-2
+  	Local oddNodes:Int
+
+	For Local i:Int =0 Until polypoints.Length() Step 2
+	
+		'Print polypoints[i+1]
+	
+		If (polypoints[i+1]< y And polypoints[j+1]>=y )   Or   (polypoints[j+1]< y And polypoints[i+1]>=y) 
+			If  (polypoints[i]<=x Or polypoints[j]<=x) 
+				If (polypoints[i]+(y-polypoints[i+1])/(polypoints[j+1]-polypoints[i+1])*(polypoints[j]-polypoints[i])<x) 
+					oddNodes = 1 ~ oddNodes 
+				Endif
+			Endif
+		Endif
+		
+		j=i 
+	Next
+
+  Return oddNodes
+
+End Function
 
 

@@ -46,7 +46,7 @@ Class MyApp Extends App
 		
 		canvas.SetColor(1,1,1)
 
-		If trisoup<>Null And  trisoup.indexes.Length()>= 3
+		If trisoup<>Null And  trisoup.TriangleCount()>=1
 			Local scale:Float = 0.75+Cos(Millisecs()*0.1)*0.25
 			
 			Local offx:Float = 0.5+Sin(Millisecs()*0.05)*0.25
@@ -57,8 +57,15 @@ Class MyApp Extends App
 			'offy = 0
 		
 			trisoup.MakeTextureCords(offx,offy,scale,scale)
-			canvas.DrawIndexedPrimitives(3,trisoup.indexes.Length()/3,trisoup.points,trisoup.texcoords,trisoup.indexes,material)
+			canvas.DrawIndexedPrimitives(3,trisoup.TriangleCount,trisoup.Points(),trisoup.texcoords,trisoup.Indexes,material)
 		Endif
+		
+		canvas.SetColor 1,0,0,1
+		canvas.DrawText "Click screen 3 or times or more to create points for the polygon",DeviceWidth()/2,DeviceHeight()/2,.5,.5
+ 
+		 
+		
+		
 		
 	 	canvas.Flush
 		Return 0
